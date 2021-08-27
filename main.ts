@@ -1,112 +1,68 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin, MarkdownPreviewRenderer } from 'obsidian';
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class BoookmarkPlugin extends Plugin {
 
 	async onload() {
-		console.log('loading plugin');
-
-		await this.loadSettings();
-
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
-		});
-
-		this.addStatusBarItem().setText('Status Bar Text');
-
-		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-					return true;
-				}
-				return false;
-			}
-		});
-
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		MarkdownPreviewRenderer.registerPostProcessor(this.markdownPostProcessor);
 	}
 
 	onunload() {
-		console.log('unloading plugin');
+		MarkdownPreviewRenderer.unregisterPostProcessor(this.markdownPostProcessor);
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	markdownPostProcessor = (
+		el: HTMLElement	
+	): void => {
+		el.querySelectorAll("a.external-link").forEach((link) => {
+			const href = link.getAttribute("href");
+
+			let embed = this.youtubeEmbed(href);
+			if(embed) {
+				link.parentElement.insertBefore(embed, link.nextSibling)
+			}
+
+			embed = this.twitterEmbed(href);
+			if(embed) {
+				link.parentElement.insertBefore(embed, link.nextSibling)
+			}
+
+		});
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+	youtubeEmbed(url: string): HTMLElement {
+		const regex = /youtu(?:.*\/v\/|.*v\=|\.be\/)([A-Za-z0-9_\-]{11})/
+		const id = url.match(regex)
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+		if(!id) {
+			return;
+		}
+		
+		const embed = document.createElement("iframe");
+		embed.setAttribute("width", "560")
+		embed.setAttribute("height", "315")
+		embed.setAttribute("allowfullscreen", "1")
+		embed.setAttribute("frameborder", "0")
+		embed.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture")
+		embed.setAttribute("src", `https://www.youtube.com/embed/${id[1]}`)
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
+		return embed;
 	}
 
-	display(): void {
-		let {containerEl} = this;
+	twitterEmbed(url: String): HTMLElement {
+		const regex = /twitter\.com\/.*\/status(?:es)?\/([^\/\?]+)/
+		const id = url.match(regex)
 
-		containerEl.empty();
+		if(!id) {
+			return;
+		}
+		
+		const embed = document.createElement("iframe");
+		embed.setAttribute("width", "250")
+		embed.setAttribute("height", "550")
+		embed.setAttribute("border", "0")
+		embed.setAttribute("frameborder", "0")
+		embed.setAttribute("src", `https://twitframe.com/show?url=${encodeURI(url)}`)
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		return embed
 	}
 }
