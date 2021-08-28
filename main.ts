@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS: EmbedSettings = {
 	defaultEmbed: true
 }
 
-export default class BookmarkPlugin extends Plugin {
+export default class EmbedPlugin extends Plugin {
 	settings: EmbedSettings;
 
 	async onload() {
@@ -16,7 +16,7 @@ export default class BookmarkPlugin extends Plugin {
 
 		MarkdownPreviewRenderer.registerPostProcessor(this.markdownPostProcessor);
 
-		this.addSettingTab(new BookmarkSettingTab(this.app, this));
+		this.addSettingTab(new EmbedSettingTab(this.app, this));
 
 	}
 
@@ -106,10 +106,10 @@ export default class BookmarkPlugin extends Plugin {
 }
 
 
-class BookmarkSettingTab extends PluginSettingTab {
-	plugin: BookmarkPlugin;
+class EmbedSettingTab extends PluginSettingTab {
+	plugin: EmbedPlugin;
 
-	constructor(app: App, plugin: BookmarkPlugin) {
+	constructor(app: App, plugin: EmbedPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}

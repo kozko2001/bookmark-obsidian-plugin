@@ -1,9 +1,9 @@
 {
-	"id": "bookmark-plugin",
-	"name": "Bookmark Plugin",
+	"id": "embed-plugin",
+	"name": "Embed links Plugin",
 	"version": "1.0.1",
 	"minAppVersion": "0.9.12",
-	"description": "Plugin to manage bookmarks in obsidian",
+	"description": "Plugin to embed links (Youtube, twitter) in obsidian",
 	"author": "Jordi Coscolla",
 	"authorUrl": "https://allocsoc.net",
 	"isDesktopOnly": false
