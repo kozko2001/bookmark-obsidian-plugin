@@ -1,32 +1,70 @@
-import { Plugin, MarkdownPreviewRenderer } from 'obsidian';
+import { Plugin, MarkdownPreviewRenderer, MarkdownPostProcessorContext, PluginSettingTab, App, Setting } from 'obsidian';
 
-export default class BoookmarkPlugin extends Plugin {
+interface EmbedSettings {
+	defaultEmbed: boolean;
+}
+
+const DEFAULT_SETTINGS: EmbedSettings = {
+	defaultEmbed: true
+}
+
+export default class BookmarkPlugin extends Plugin {
+	settings: EmbedSettings;
 
 	async onload() {
+		await this.loadSettings();
+
 		MarkdownPreviewRenderer.registerPostProcessor(this.markdownPostProcessor);
+
+		this.addSettingTab(new BookmarkSettingTab(this.app, this));
+
 	}
 
 	onunload() {
 		MarkdownPreviewRenderer.unregisterPostProcessor(this.markdownPostProcessor);
 	}
 
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
+	}
+
+	isActive(frontmatter: any | undefined): boolean {
+		if(frontmatter === undefined) {
+			return this.settings.defaultEmbed;
+		}
+		const override = frontmatter['forceEmbed'];
+		if(override === undefined) {
+			return this.settings.defaultEmbed;
+		} else {
+			return override === true;
+		}
+	}
+
 	markdownPostProcessor = (
-		el: HTMLElement	
+		el: HTMLElement,
+		ctx: MarkdownPostProcessorContext,
 	): void => {
-		el.querySelectorAll("a.external-link").forEach((link) => {
-			const href = link.getAttribute("href");
+		const isActive = this.isActive(ctx.frontmatter);
+		if(isActive) {
+			el.querySelectorAll("a.external-link").forEach((link) => {
+				const href = link.getAttribute("href");
 
-			let embed = this.youtubeEmbed(href);
-			if(embed) {
-				link.parentElement.insertBefore(embed, link.nextSibling)
-			}
+				let embed = this.youtubeEmbed(href);
+				if(embed) {
+					link.parentElement.insertBefore(embed, link.nextSibling)
+				}
 
-			embed = this.twitterEmbed(href);
-			if(embed) {
-				link.parentElement.insertBefore(embed, link.nextSibling)
-			}
+				embed = this.twitterEmbed(href);
+				if(embed) {
+					link.parentElement.insertBefore(embed, link.nextSibling)
+				}
 
-		});
+			});
+		}
 	}
 
 	youtubeEmbed(url: string): HTMLElement {
@@ -64,5 +102,33 @@ export default class BoookmarkPlugin extends Plugin {
 		embed.setAttribute("src", `https://twitframe.com/show?url=${encodeURI(url)}`)
 
 		return embed
+	}
+}
+
+
+class BookmarkSettingTab extends PluginSettingTab {
+	plugin: BookmarkPlugin;
+
+	constructor(app: App, plugin: BookmarkPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		let {containerEl} = this;
+
+		containerEl.empty();
+
+		containerEl.createEl('h2', {text: 'Embed links settings'});
+
+		new Setting(containerEl)
+			.setName('Embed default')
+			.setDesc('Should embed links by default, you can enable/disable embed for specific notes using frontmatter')
+			.addToggle(cb => cb
+				.setValue(this.plugin.settings.defaultEmbed)
+				.onChange(async value => {
+					this.plugin.settings.defaultEmbed = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 }
