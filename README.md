@@ -2,7 +2,7 @@
 
 A simple plugin to see embed visualization of external links.
 
-Right now it only supports for Youtube and twitter. Expect more to be added <3
+Right now it only supports for Youtube and twitter. Expect more to be added 💚
 
 ### Settings
 
@@ -17,3 +17,6 @@ forceEmbed: true
 
 - https://www.youtube.com/watch?v=1w7OgIMMRc4
 ```
+
+![example](./docs/example.png)
+
